@@ -122,7 +122,7 @@ COPY staging.geolocation
 FROM '/Users/hamiddastgir/Hamid/PostgreSQL/SQL Project/Brazillian Dataset/geolocation.csv'
 WITH CSV HEADER DELIMITER ',';
 
--- Checking row count
+-- Verifying Row Count
 
 SELECT COUNT(*) FROM staging.orders;
 SELECT COUNT(*) FROM staging.customers;
@@ -133,4 +133,56 @@ SELECT COUNT(*) FROM staging.products;
 SELECT COUNT(*) FROM staging.product_category_name_translation;
 SELECT COUNT(*) FROM staging.sellers;
 SELECT COUNT(*) FROM staging.geolocation;
+
+-- Done
+
+-- Checking for null values
+
+SELECT COUNT(*) AS total_rows,
+       COUNT(order_id) AS non_null_orders,
+       COUNT(customer_id) AS non_null_customers,
+       COUNT(order_purchase_timestamp) AS non_null_purchase_dates
+FROM staging.orders;
+
+
+SELECT COUNT(*) AS total_rows,
+       COUNT(customer_id) AS non_null_customers,
+       COUNT(customer_unique_id) AS non_null_unique_customers
+FROM staging.customers;
+
+SELECT COUNT(*) AS total_rows,
+       COUNT(product_id) AS non_null_products,
+       COUNT(product_category_name) AS non_null_categories,
+       COUNT(product_weight_g) AS non_null_weight
+FROM staging.products;
+
+-- Checking valid date ranges
+
+SELECT MIN(order_purchase_timestamp) AS earliest_order, 
+       MAX(order_purchase_timestamp) AS latest_order
+FROM staging.orders;
+
+
+SELECT MIN(review_creation_date) AS earliest_review, 
+       MAX(review_creation_date) AS latest_review
+FROM staging.reviews;
+
+-- Detecting Duplicate Primary Keys
+
+SELECT order_id, COUNT(*)
+FROM staging.orders
+GROUP BY order_id
+HAVING COUNT(*) > 1;
+
+SELECT customer_id, COUNT(*)
+FROM staging.customers
+GROUP BY customer_id
+HAVING COUNT(*) > 1;
+
+SELECT product_id, COUNT(*)
+FROM staging.products
+GROUP BY product_id
+HAVING COUNT(*) > 1;
+
+-- 
 
