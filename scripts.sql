@@ -156,7 +156,14 @@ SELECT COUNT(*) AS total_rows,
        COUNT(product_weight_g) AS non_null_weight
 FROM staging.products;
 
--- Checking valid date ranges
+-- products table has null values
+UPDATE staging.products
+SET product_category_name = 'unknown'
+WHERE product_category_name IS NULL;
+
+
+
+-- Checking Valid Date ranges
 
 SELECT MIN(order_purchase_timestamp) AS earliest_order, 
        MAX(order_purchase_timestamp) AS latest_order
@@ -184,5 +191,14 @@ FROM staging.products
 GROUP BY product_id
 HAVING COUNT(*) > 1;
 
--- 
+-- Checking for Outliers
 
+SELECT MIN(product_weight_g) AS min_weight,
+       MAX(product_weight_g) AS max_weight
+FROM staging.products;
+
+SELECT MIN(freight_value) AS min_freight,
+       MAX(freight_value) AS max_freight
+FROM staging.olist_order_items;
+
+-- 
