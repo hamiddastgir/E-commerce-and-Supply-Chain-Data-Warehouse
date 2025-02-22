@@ -219,4 +219,144 @@ GROUP BY product_id
 HAVING COUNT(*) > 1; -- no null values
 
 
--- 
+-- Create dw Schema
+
+CREATE SCHEMA IF NOT EXISTS dw;
+
+-- Create Dimension Tables
+
+-- dim_customer
+
+CREATE TABLE dw.dim_customer (
+    customer_key SERIAL PRIMARY KEY,
+    customer_id TEXT UNIQUE NOT NULL,
+    customer_unique_id TEXT,
+    customer_city TEXT,
+    customer_state TEXT,
+    effective_start_date DATE DEFAULT CURRENT_DATE,
+    effective_end_date DATE,
+    is_current BOOLEAN DEFAULT TRUE
+);
+
+-- dim_product
+
+CREATE TABLE dw.dim_product (
+    product_key SERIAL PRIMARY KEY,
+    product_id TEXT UNIQUE NOT NULL,
+    product_category_name TEXT,
+    product_name_length INT,
+    product_description_length INT,
+    product_photos_qty INT,
+    product_weight_g INT,
+    product_length_cm INT,
+    product_height_cm INT,
+    product_width_cm INT
+);
+
+-- dim_seller
+
+CREATE TABLE dw.dim_seller (
+    seller_key SERIAL PRIMARY KEY,
+    seller_id TEXT UNIQUE NOT NULL,
+    seller_city TEXT,
+    seller_state TEXT
+);
+
+-- dim_date
+
+CREATE TABLE dw.dim_date (
+    date_key SERIAL PRIMARY KEY,
+    full_date DATE NOT NULL UNIQUE,
+    year INT,
+    quarter INT,
+    month INT,
+    day INT,
+    day_of_week TEXT,
+    is_weekend BOOLEAN
+);
+
+-- dim_geolocation
+
+CREATE TABLE dw.dim_geolocation (
+    geolocation_key SERIAL PRIMARY KEY,
+    zip_code_prefix TEXT UNIQUE NOT NULL,
+    latitude NUMERIC(10, 6),
+    longitude NUMERIC(10, 6),
+    city TEXT,
+    state TEXT
+);
+
+
+-- dim_category
+
+CREATE TABLE dw.dim_category (
+    category_key SERIAL PRIMARY KEY,
+    product_category_name TEXT UNIQUE NOT NULL,
+    product_category_name_english TEXT
+);
+
+-- CREATE FACT Tables
+
+-- fact_orders
+
+CREATE TABLE dw.fact_orders (
+    order_key SERIAL PRIMARY KEY,
+    order_id TEXT UNIQUE NOT NULL,
+    customer_key INT NOT NULL,
+    order_status TEXT,
+    order_purchase_date DATE,
+    order_approved_date DATE,
+    order_delivered_date DATE,
+    order_estimated_delivery_date DATE,
+    FOREIGN KEY (customer_key) REFERENCES dw.dim_customer(customer_key)
+);
+
+-- fact_order_items
+
+CREATE TABLE dw.fact_order_items (
+    order_item_key SERIAL PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    product_key INT NOT NULL,
+    seller_key INT NOT NULL,
+    price NUMERIC(10, 2),
+    freight_value NUMERIC(10, 2),
+    FOREIGN KEY (product_key) REFERENCES dw.dim_product(product_key),
+    FOREIGN KEY (seller_key) REFERENCES dw.dim_seller(seller_key)
+);
+
+-- fact_payments
+
+CREATE TABLE dw.fact_payments (
+    payment_key SERIAL PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    payment_type TEXT,
+    payment_installments INT,
+    payment_value NUMERIC(10, 2)
+);
+
+-- fact_reviews
+
+CREATE TABLE dw.fact_reviews (
+    review_key SERIAL PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    review_score INT,
+    review_comment TEXT,
+    review_creation_date DATE
+);
+
+-- 3: Move Data from Staging to DW
+
+-- ETL for Dimension Tables
+
+-- dim_customer
+
+INSERT INTO dw.dim_customer (customer_id, customer_unique_id, customer_city, customer_state)
+SELECT DISTINCT customer_id, customer_unique_id, customer_city, customer_state
+FROM staging.customers;
+
+-- dim_product
+
+INSERT INTO dw.dim_product (product_id, product_category_name, product_name_length, product_description_length, product_photos_qty, product_weight_g, product_length_cm, product_height_cm, product_width_cm)
+SELECT DISTINCT product_id, COALESCE(product_category_name, 'unknown'), product_name_length, product_description_length, product_photos_qty, product_weight_g, product_length_cm, product_height_cm, product_width_cm
+FROM staging.products;
+
