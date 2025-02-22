@@ -156,12 +156,10 @@ SELECT COUNT(*) AS total_rows,
        COUNT(product_weight_g) AS non_null_weight
 FROM staging.products;
 
--- products table has null values
-UPDATE staging.products
-SET product_category_name = 'unknown'
-WHERE product_category_name IS NULL;
-
-
+SELECT product_id, COUNT(*)
+FROM staging.products
+GROUP BY product_id
+HAVING COUNT(*) > 1;
 
 -- Checking Valid Date ranges
 
@@ -186,11 +184,6 @@ FROM staging.customers
 GROUP BY customer_id
 HAVING COUNT(*) > 1;
 
-SELECT product_id, COUNT(*)
-FROM staging.products
-GROUP BY product_id
-HAVING COUNT(*) > 1;
-
 -- Checking for Outliers
 
 SELECT MIN(product_weight_g) AS min_weight,
@@ -200,5 +193,30 @@ FROM staging.products;
 SELECT MIN(freight_value) AS min_freight,
        MAX(freight_value) AS max_freight
 FROM staging.olist_order_items;
+
+-- Products table's category field had null values. Fixing the null values within Product table by setting values as unknown
+
+UPDATE staging.products
+SET product_category_name = 'unknown'
+WHERE product_category_name IS NULL;
+
+-- Checking median of product_weight_g and imputing it with the median weight
+
+SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY product_weight_g) 
+FROM staging.products
+WHERE product_weight_g IS NOT NULL;
+
+UPDATE staging.products
+SET product_weight_g = (SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY product_weight_g) 
+                        FROM staging.products WHERE product_weight_g IS NOT NULL)
+WHERE product_weight_g IS NULL;
+
+-- Query to check if all NULL values have been handles
+
+SELECT product_id, COUNT(*)
+FROM staging.products
+GROUP BY product_id
+HAVING COUNT(*) > 1; -- no null values
+
 
 -- 
