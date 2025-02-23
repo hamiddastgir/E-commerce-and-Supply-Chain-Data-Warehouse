@@ -696,3 +696,11 @@ JOIN dw.fact_orders fo
 JOIN dw.dim_warehouse w
   ON s.warehouse_id = w.synthetic_warehouse_id;
 
+-- Add SCD Columns to dim_warehouse
+-- dim_warehouse
+
+ALTER TABLE dw.dim_warehouse
+    ADD COLUMN IF NOT EXISTS effective_start_date DATE DEFAULT CURRENT_DATE,
+    ADD COLUMN IF NOT EXISTS effective_end_date DATE,
+    ADD COLUMN IF NOT EXISTS is_current BOOLEAN DEFAULT TRUE;
+
