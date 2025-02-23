@@ -989,3 +989,27 @@ CREATE INDEX idx_fact_shipments_order_key
 
 CREATE INDEX idx_fact_shipments_warehouse_key
   ON dw.fact_shipments (warehouse_key);
+
+-- 3. (Optional) Additional Targeted Indexes
+-- 3.1 Searching by Non-Foreign Key Columns
+
+CREATE INDEX idx_fact_orders_status 
+  ON dw.fact_orders (order_status);
+
+-- 3.2 Partial Indexes
+
+-- order_purchaase_date_key
+CREATE INDEX idx_fact_orders_delivered_only
+ON dw.fact_orders (order_purchase_date_key)
+WHERE order_status = 'delivered';
+
+-- If you do SCD on dim_customer with is_current = TRUE:
+CREATE INDEX idx_dim_customer_current
+  ON dw.dim_customer (customer_id)
+  WHERE is_current = TRUE;
+
+-- If you do SCD on dim_warehouse with is_current = TRUE:
+CREATE INDEX idx_dim_warehouse_current
+  ON dw.dim_warehouse (synthetic_warehouse_id)
+  WHERE is_current = TRUE;
+
