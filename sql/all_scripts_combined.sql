@@ -1271,3 +1271,5 @@ GROUP BY dd.year, dd.month, dc.customer_state;
 
 -- Refresh periodically
 REFRESH MATERIALIZED VIEW dw.mv_monthly_sales_by_region;
+
+
