@@ -1015,6 +1015,46 @@ CREATE INDEX idx_dim_warehouse_current
 
 -- ANALYTICS
 
+-- Customer Churn Analysis
+-- Identify customers who haven't placed an order in the last 90 days as of Feb 25, 2025
+WITH last_order AS (
+    SELECT 
+        dc.customer_unique_id,
+        dc.customer_city,
+        dc.customer_state,
+        MAX(dd.full_date) AS last_order_date,
+        COUNT(DISTINCT fo.order_key) AS total_orders
+    FROM dw.dim_customer dc
+    JOIN dw.fact_orders fo ON dc.customer_key = fo.customer_key
+    JOIN dw.dim_date dd ON fo.order_purchase_date_key = dd.date_key
+    WHERE dc.is_current = TRUE
+      AND fo.order_status = 'delivered'
+    GROUP BY dc.customer_unique_id, dc.customer_city, dc.customer_state
+),
+churn_metrics AS (
+    SELECT 
+        customer_unique_id,
+        customer_city,
+        customer_state,
+        last_order_date,
+        total_orders,
+        CURRENT_DATE - last_order_date AS days_since_last_order,
+        CASE 
+            WHEN CURRENT_DATE - last_order_date > 90 THEN 'Churned'
+            ELSE 'Active'
+        END AS churn_status
+    FROM last_order
+)
+SELECT 
+    churn_status,
+    customer_state,
+    COUNT(*) AS customer_count,
+    ROUND(AVG(total_orders), 2) AS avg_orders_per_customer,
+    ROUND(AVG(days_since_last_order), 2) AS avg_days_since_last_order
+FROM churn_metrics
+GROUP BY churn_status, customer_state
+ORDER BY churn_status, customer_count DESC;
+
 -- RANKING WAREHOUSES BY AVERAGE SHIPPING COST
 
 WITH warehouse_costs AS (
@@ -1066,7 +1106,7 @@ JOIN dw.dim_customer dc
 WHERE cr.spend_decile = 1  -- top decile
 ORDER BY cr.total_spend DESC;
 
--- Rolling 7-Day Average Sales per Product -- NEED TO MAKE IT ENGLISH
+-- Rolling 7-Day Average Sales per Product
 
 WITH daily_sales AS (
     SELECT 
