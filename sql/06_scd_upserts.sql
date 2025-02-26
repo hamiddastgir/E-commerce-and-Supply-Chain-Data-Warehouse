@@ -209,3 +209,91 @@ BEGIN
     END LOOP;
 END;
 $$;
+
+
+-- Adding SCD columns on dim_product
+
+ALTER TABLE dw.dim_product
+  ADD COLUMN IF NOT EXISTS effective_start_date DATE DEFAULT CURRENT_DATE,
+  ADD COLUMN IF NOT EXISTS effective_end_date DATE,
+  ADD COLUMN IF NOT EXISTS is_current BOOLEAN DEFAULT TRUE;
+
+-- Create the Upsert Procedure
+
+  CREATE OR REPLACE PROCEDURE dw.upsert_dim_product(
+    p_product_id TEXT,
+    p_category_name TEXT,
+    p_weight_g INT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_existing_key INT;
+    v_existing_category TEXT;
+    v_existing_weight INT;
+BEGIN
+    -- 1) Find current row for this product_id
+    SELECT product_key,
+           product_category_name,
+           product_weight_g
+      INTO v_existing_key,
+           v_existing_category,
+           v_existing_weight
+      FROM dw.dim_product
+     WHERE product_id = p_product_id
+       AND is_current = TRUE
+     LIMIT 1;
+
+    IF NOT FOUND THEN
+        -- 2) No current row => Insert brand-new record
+        INSERT INTO dw.dim_product(
+            product_id,
+            product_category_name,
+            product_weight_g,
+            effective_start_date,
+            effective_end_date,
+            is_current
+        )
+        VALUES (
+            p_product_id,
+            p_category_name,
+            p_weight_g,
+            CURRENT_DATE,
+            NULL,
+            TRUE
+        );
+
+    ELSE
+        -- 3) We have an existing row => compare the attributes
+        IF (v_existing_category = p_category_name)
+           AND (v_existing_weight = p_weight_g)
+        THEN
+            -- 3a) No attribute changes => do nothing
+            RAISE NOTICE 'No changes for product %', p_product_id;
+        ELSE
+            -- 3b) Something changed => end-date old record, insert new version
+            UPDATE dw.dim_product
+               SET effective_end_date = CURRENT_DATE,
+                   is_current = FALSE
+             WHERE product_key = v_existing_key;
+
+            INSERT INTO dw.dim_product(
+                product_id,
+                product_category_name,
+                product_weight_g,
+                effective_start_date,
+                effective_end_date,
+                is_current
+            )
+            VALUES (
+                p_product_id,
+                p_category_name,
+                p_weight_g,
+                CURRENT_DATE,
+                NULL,
+                TRUE
+            );
+        END IF;
+    END IF;
+END;
+$$;
