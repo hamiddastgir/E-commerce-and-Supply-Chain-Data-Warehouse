@@ -1077,6 +1077,35 @@ JOIN dw.dim_warehouse w
   ON wc.warehouse_key = w.warehouse_key
 ORDER BY wc.avg_shipping_cost ASC;
 
+-- Analyze warehouse shipping cost efficiency
+WITH warehouse_metrics AS (
+    SELECT 
+        dw.warehouse_name,
+        COUNT(DISTINCT fs.order_key) AS total_orders,
+        SUM(fs.shipping_cost) AS total_shipping_cost,
+        ROUND(SUM(fs.shipping_cost) / COUNT(DISTINCT fs.order_key), 2) AS cost_per_order,
+        ROUND(AVG(CASE 
+            WHEN fs.delivery_date <= dd_est.full_date THEN 1 
+            ELSE 0 
+        END) * 100, 2) AS on_time_delivery_pct
+    FROM dw.fact_shipments fs
+    JOIN dw.dim_warehouse dw ON fs.warehouse_key = dw.warehouse_key
+    JOIN dw.fact_orders fo ON fs.order_key = fo.order_key
+    JOIN dw.dim_date dd_est ON fo.order_estimated_delivery_date_key = dd_est.date_key
+    WHERE fo.order_status = 'delivered'
+      AND dw.is_current = TRUE
+    GROUP BY dw.warehouse_name
+)
+SELECT 
+    warehouse_name,
+    total_orders,
+    total_shipping_cost,
+    cost_per_order,
+    on_time_delivery_pct,
+    RANK() OVER (ORDER BY cost_per_order ASC, on_time_delivery_pct DESC) AS efficiency_rank
+FROM warehouse_metrics
+ORDER BY efficiency_rank;
+
 -- Identify Top 10% of Customers by Spend (CTE + Window)
 
 WITH customer_spend AS (
