@@ -191,10 +191,9 @@ View the ERD in `/docs/erd_diagram.png`. Key elements:
 - Fork the repo and submit pull requests for new features or queries.
 - For significant changes, open an issue to discuss first.
 
-## Contact & License
+## Contact
 
-- Author: Hamid Dastgir  
-- License: MIT (see LICENSE file).
+- Author: [Hamid Dastgir](https://hamiddastgir.com)
 
 Explore, adapt, and enhance this data warehouse for your own projects or portfolio. Happy analyzing!
 
