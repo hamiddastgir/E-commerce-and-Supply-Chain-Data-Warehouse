@@ -995,6 +995,36 @@ BEGIN
 END;
 $$;
 
+-- 3. Using the Upsert Procedure
+-- 3.1 Example: staging.product_updates table
+
+CREATE TABLE IF NOT EXISTS staging.product_updates (
+    product_id TEXT,
+    product_category_name TEXT,
+    product_weight_g INT
+    -- plus other columns if you want
+);
+
+-- 3.2 Calling the Procedure for Each Updated Row
+
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN (
+        SELECT product_id, product_category_name, product_weight_g
+        FROM staging.product_updates
+    )
+    LOOP
+        CALL dw.upsert_dim_product(
+            rec.product_id,
+            rec.product_category_name,
+            rec.product_weight_g
+        );
+    END LOOP;
+END;
+$$;
+
 -- 1. Create or Alter Tables to Add CHECK Constraints
 -- Price / Freight / Payment Non-Negative
 
