@@ -1419,23 +1419,187 @@ GROUP BY dd.year, dd.month, dc.customer_state;
 REFRESH MATERIALIZED VIEW dw.mv_monthly_sales_by_region;
 
 
-
+-- The below codes did not work as intended (keeping for documentation)
 ALTER TABLE dw.dim_product
   ADD COLUMN IF NOT EXISTS category_key INT,
   ADD CONSTRAINT fk_dim_product_category_key
     FOREIGN KEY (category_key)
     REFERENCES dw.dim_category(category_key);
-
 -- Matching dim_product.product_category_name to dim_category.product_category_name
+UPDATE dw.dim_product dp
+SET category_key = dc.category_key
+FROM dw.dim_category dc
+WHERE dp.product_category_name = dc.product_category_name;
+-- Dropping product_category_name Column
+ALTER TABLE dw.dim_product
+  DROP COLUMN product_category_name;
+-- Linking dim_seller (or dim_warehouse) to dim_geolocation
 
+
+
+
+-- CORRECTING ERRORS
+--1. Ensure dim_product Is Ready
+-- Drop any old constraints or columns that might conflict:
+ALTER TABLE dw.dim_product
+  DROP CONSTRAINT IF EXISTS fk_dim_product_category_key;
+
+ALTER TABLE dw.dim_product
+  DROP COLUMN IF EXISTS category_key,
+  DROP COLUMN IF EXISTS category_name_english;
+
+-- 2.1 Add category_key (FK) and category_name_english
+ALTER TABLE dw.dim_product
+  ADD COLUMN category_key INT,
+  ADD COLUMN category_name_english TEXT;
+
+  -- 2.2 Add foreign key referencing dim_category
+ALTER TABLE dw.dim_product
+  ADD CONSTRAINT fk_dim_product_category_key
+    FOREIGN KEY (category_key)
+    REFERENCES dw.dim_category(category_key);
+
+-- 3. Migrate Data from dim_product.product_category_name to category_key & category_name_english
+
+UPDATE dw.dim_product AS dp
+SET 
+    category_key = dc.category_key,
+    category_name_english = dc.product_category_name_english
+FROM dw.dim_category AS dc
+WHERE dp.product_category_name = dc.product_category_name;
+
+-- 4. (Optional) Drop product_category_name
+ALTER TABLE dw.dim_product
+  DROP COLUMN product_category_name;
+
+  -- Didn't work
+
+
+  -- Dropping it all
+
+  DROP TABLE IF EXISTS dw.dim_product CASCADE;
+
+
+  -- Recreating again
+  CREATE TABLE dw.dim_product (
+  product_key SERIAL PRIMARY KEY,
+  product_id TEXT UNIQUE NOT NULL,
+  product_category_name TEXT,
+  product_name_length INT,
+  product_description_length INT,
+  product_photos_qty INT,
+  product_weight_g INT,
+  product_length_cm INT,
+  product_height_cm INT,
+  product_width_cm INT,
+  effective_start_date DATE DEFAULT CURRENT_DATE,
+  effective_end_date DATE,
+  is_current BOOLEAN DEFAULT TRUE
+);
+
+--  Reloading data from staging.products
+INSERT INTO dw.dim_product (
+  product_id,
+  product_category_name,
+  product_name_length,
+  product_description_length,
+  product_photos_qty,
+  product_weight_g,
+  product_length_cm,
+  product_height_cm,
+  product_width_cm,
+  effective_start_date,
+  is_current
+)
+SELECT DISTINCT 
+  product_id,
+  COALESCE(product_category_name, 'unknown'),
+  product_name_length,
+  product_description_length,
+  product_photos_qty,
+  product_weight_g,
+  product_length_cm,
+  product_height_cm,
+  product_width_cm,
+  CURRENT_DATE,
+  TRUE
+FROM staging.products;
+
+
+-- Step 1: Add category_key
+ALTER TABLE dw.dim_product
+  ADD COLUMN IF NOT EXISTS category_key INT;
+
+-- Add foreign key constraint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM pg_constraint 
+    WHERE conname = 'fk_dim_product_category_key'
+  ) THEN
+    ALTER TABLE dw.dim_product
+      ADD CONSTRAINT fk_dim_product_category_key
+        FOREIGN KEY (category_key)
+        REFERENCES dw.dim_category(category_key);
+  END IF;
+END;
+$$;
+
+-- Step 2: Migrate data from product_category_name to category_key
 UPDATE dw.dim_product dp
 SET category_key = dc.category_key
 FROM dw.dim_category dc
 WHERE dp.product_category_name = dc.product_category_name;
 
--- Dropping product_category_name Column
+-- Handle any unmatched rows (set to 'unknown' category)
+INSERT INTO dw.dim_category (product_category_name, product_category_name_english)
+SELECT 'unknown', 'unknown'
+WHERE NOT EXISTS (
+  SELECT 1 FROM dw.dim_category WHERE product_category_name = 'unknown'
+)
+ON CONFLICT (product_category_name) DO NOTHING;
 
+UPDATE dw.dim_product dp
+SET category_key = (SELECT category_key FROM dw.dim_category WHERE product_category_name = 'unknown')
+WHERE category_key IS NULL;
+
+-- Step 3: Verify the migration
+SELECT 
+  COUNT(*) AS total_rows,
+  COUNT(category_key) AS non_null_category_key,
+  COUNT(product_category_name) AS non_null_category_name
+FROM dw.dim_product;
+
+SELECT 
+  dp.product_id,
+  dp.product_category_name,
+  dp.category_key,
+  dc.product_category_name_english
+FROM dw.dim_product dp
+LEFT JOIN dw.dim_category dc ON dp.category_key = dc.category_key
+LIMIT 10;
+
+-- Step 4: (Optional) Drop product_category_name
 ALTER TABLE dw.dim_product
-  DROP COLUMN product_category_name;
+  DROP COLUMN IF EXISTS product_category_name;
 
--- Linking dim_seller (or dim_warehouse) to dim_geolocation
+
+-- Geolocation is empty somehow, troubleshooting and rebuilding
+
+INSERT INTO dw.dim_geolocation (
+  zip_code_prefix,
+  latitude,
+  longitude,
+  city,
+  state
+)
+SELECT DISTINCT 
+  geolocation_zip_code_prefix,
+  geolocation_lat,
+  geolocation_lng,
+  geolocation_city,
+  geolocation_state
+FROM staging.geolocation
+ON CONFLICT (zip_code_prefix) DO NOTHING;
+
