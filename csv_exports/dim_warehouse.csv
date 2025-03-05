@@ -1,0 +1,11 @@
+warehouse_key,synthetic_warehouse_id,warehouse_name,warehouse_location,capacity,effective_start_date,effective_end_date,is_current
+1,1,Warehouse_1,Rio de Janeiro - RJ,8825,2025-02-23,,t
+2,2,Warehouse_2,Belo Horizonte - MG,16876,2025-02-23,,t
+3,3,Warehouse_3,Porto Alegre - RS,14401,2025-02-23,,t
+4,4,Warehouse_4,Sao Paulo - SP,6338,2025-02-23,,t
+5,5,Warehouse_5,Salvador - BA,9443,2025-02-23,,t
+6,,Warehouse_1,Rio de Janeiro - RJ,8825,2025-02-23,,t
+7,,Warehouse_2,Belo Horizonte - MG,16876,2025-02-23,,t
+8,,Warehouse_3,Porto Alegre - RS,14401,2025-02-23,,t
+9,,Warehouse_4,Sao Paulo - SP,6338,2025-02-23,,t
+10,,Warehouse_5,Salvador - BA,9443,2025-02-23,,t

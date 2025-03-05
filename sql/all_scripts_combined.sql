@@ -1603,3 +1603,72 @@ SELECT DISTINCT
 FROM staging.geolocation
 ON CONFLICT (zip_code_prefix) DO NOTHING;
 
+
+-- Backup current dim_seller
+CREATE TABLE dw.dim_seller_backup_20250305 AS 
+SELECT * FROM dw.dim_seller;
+
+-- Drop and recreate dim_seller with zip code
+DROP TABLE dw.dim_seller CASCADE;
+
+CREATE TABLE dw.dim_seller (
+    seller_key SERIAL PRIMARY KEY,
+    seller_id TEXT UNIQUE NOT NULL,
+    seller_zip_code_prefix TEXT,
+    seller_city TEXT,
+    seller_state TEXT,
+    geolocation_key INT,
+    CONSTRAINT fk_dim_seller_geolocation
+      FOREIGN KEY (geolocation_key)
+      REFERENCES dw.dim_geolocation(geolocation_key)
+);
+
+-- Repopulate from staging.sellers
+INSERT INTO dw.dim_seller (
+    seller_id,
+    seller_zip_code_prefix,
+    seller_city,
+    seller_state
+)
+SELECT DISTINCT 
+    seller_id,
+    seller_zip_code_prefix,
+    seller_city,
+    seller_state
+FROM staging.sellers;
+
+
+-- populate geolocation_key
+UPDATE dw.dim_seller ds
+SET geolocation_key = dg.geolocation_key
+FROM dw.dim_geolocation dg
+WHERE ds.seller_zip_code_prefix = dg.zip_code_prefix;
+
+-- Handle unmatched rows
+INSERT INTO dw.dim_geolocation (zip_code_prefix, latitude, longitude, city, state)
+SELECT 'unknown', 0.0, 0.0, 'unknown', 'unknown'
+WHERE NOT EXISTS (
+  SELECT 1 FROM dw.dim_geolocation WHERE zip_code_prefix = 'unknown'
+)
+ON CONFLICT (zip_code_prefix) DO NOTHING;
+
+UPDATE dw.dim_seller ds
+SET geolocation_key = (SELECT geolocation_key FROM dw.dim_geolocation WHERE zip_code_prefix = 'unknown')
+WHERE geolocation_key IS NULL;
+
+-- Verify
+
+SELECT 
+  COUNT(*) AS total_sellers,
+  COUNT(geolocation_key) AS non_null_geo_key
+FROM dw.dim_seller;
+
+SELECT 
+  seller_id,
+  seller_zip_code_prefix,
+  geolocation_key,
+  seller_city,
+  seller_state
+FROM dw.dim_seller
+LIMIT 5;
+
