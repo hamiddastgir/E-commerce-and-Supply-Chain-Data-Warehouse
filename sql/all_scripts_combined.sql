@@ -1419,3 +1419,23 @@ GROUP BY dd.year, dd.month, dc.customer_state;
 REFRESH MATERIALIZED VIEW dw.mv_monthly_sales_by_region;
 
 
+
+ALTER TABLE dw.dim_product
+  ADD COLUMN IF NOT EXISTS category_key INT,
+  ADD CONSTRAINT fk_dim_product_category_key
+    FOREIGN KEY (category_key)
+    REFERENCES dw.dim_category(category_key);
+
+-- Matching dim_product.product_category_name to dim_category.product_category_name
+
+UPDATE dw.dim_product dp
+SET category_key = dc.category_key
+FROM dw.dim_category dc
+WHERE dp.product_category_name = dc.product_category_name;
+
+-- Dropping product_category_name Column
+
+ALTER TABLE dw.dim_product
+  DROP COLUMN product_category_name;
+
+-- Linking dim_seller (or dim_warehouse) to dim_geolocation
