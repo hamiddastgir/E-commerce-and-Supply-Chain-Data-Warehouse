@@ -1672,3 +1672,32 @@ SELECT
 FROM dw.dim_seller
 LIMIT 5;
 
+-- Exporting All Tables from PostgreSQL for POWER BI visualization
+
+COPY staging.orders TO '/Users/hamiddastgir/Hamid/PostgreSQL/E-commerce-and-Supply-Chain-Data-Warehouse/csv_exports/staging_orders.csv' WITH CSV HEADER;
+
+
+COPY staging.customers TO '/Users/hamiddastgir/Desktop/csv_export/staging_customers.csv' WITH CSV HEADER;
+COPY staging.order_items TO '/Users/hamiddastgir/Desktop/csv_export/staging_order_items.csv' WITH CSV HEADER;
+COPY staging.order_payments TO '/Users/hamiddastgir/Desktop/csv_export/staging_order_payments.csv' WITH CSV HEADER;
+COPY staging.reviews TO '/Users/hamiddastgir/Desktop/csv_export/staging_reviews.csv' WITH CSV HEADER;
+COPY staging.products TO '/Users/hamiddastgir/Desktop/csv_export/staging_products.csv' WITH CSV HEADER;
+COPY staging.product_category_name_translation TO '/Users/hamiddastgir/Desktop/csv_export/staging_product_category_name_translation.csv' WITH CSV HEADER;
+COPY staging.sellers TO '/Users/hamiddastgir/Desktop/csv_export/staging_sellers.csv' WITH CSV HEADER;
+COPY staging.geolocation TO '/Users/hamiddastgir/Desktop/csv_export/staging_geolocation.csv' WITH CSV HEADER;
+COPY staging.synthetic_warehouse TO '/Users/hamiddastgir/Desktop/csv_export/staging_synthetic_warehouse.csv' WITH CSV HEADER;
+COPY staging.synthetic_shipments TO '/Users/hamiddastgir/Desktop/csv_export/staging_synthetic_shipments.csv' WITH CSV HEADER;
+
+COPY dw.dim_customer TO '/Users/hamiddastgir/Desktop/csv_export/dim_customer.csv' WITH CSV HEADER;
+COPY dw.dim_product TO '/Users/hamiddastgir/Desktop/csv_export/dim_product.csv' WITH CSV HEADER;
+COPY dw.dim_seller TO '/Users/hamiddastgir/Desktop/csv_export/dim_seller.csv' WITH CSV HEADER;
+COPY dw.dim_date TO '/Users/hamiddastgir/Desktop/csv_export/dim_date.csv' WITH CSV HEADER;
+COPY dw.dim_geolocation TO '/Users/hamiddastgir/Desktop/csv_export/dim_geolocation.csv' WITH CSV HEADER;
+COPY dw.dim_category TO '/Users/hamiddastgir/Desktop/csv_export/dim_category.csv' WITH CSV HEADER;
+COPY dw.dim_warehouse TO '/Users/hamiddastgir/Desktop/csv_export/dim_warehouse.csv' WITH CSV HEADER;
+COPY dw.fact_orders TO '/Users/hamiddastgir/Desktop/csv_export/fact_orders.csv' WITH CSV HEADER;
+COPY dw.fact_order_items TO '/Users/hamiddastgir/Desktop/csv_export/fact_order_items.csv' WITH CSV HEADER;
+COPY dw.fact_payments TO '/Users/hamiddastgir/Desktop/csv_export/fact_payments.csv' WITH CSV HEADER;
+COPY dw.fact_reviews TO '/Users/hamiddastgir/Desktop/csv_export/fact_reviews.csv' WITH CSV HEADER;
+COPY dw.fact_shipments TO '/Users/hamiddastgir/Desktop/csv_export/fact_shipments.csv' WITH CSV HEADER;
+
