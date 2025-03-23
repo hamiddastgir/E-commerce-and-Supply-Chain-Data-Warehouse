@@ -250,5 +250,3 @@ This project enables stakeholders to make data-driven decisions:
 - **Website**: hamiddastgir.com
 - **Email**: hamiddastgirwork@gmail.com
 - **Date**: March 13, 2025
-
-> "Data is a precious thing and will last longer than the systems themselves." – Tim Berners-Lee
